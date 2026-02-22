@@ -570,7 +570,7 @@ class CNPJPipeline(Pipeline):
         )
         return _BQChunkAdapter(reader, rename_map, drop_cols)  # type: ignore[return-value]
 
-    def run_streaming(self) -> None:
+    def run_streaming(self, start_phase: int = 1) -> None:
         """Stream-process data files chunk-by-chunk. For datasets that don't fit in memory.
 
         Tries RF-format files first, falls back to BQ-format CSVs.
@@ -622,7 +622,9 @@ class CNPJPipeline(Pipeline):
         )
 
         # Phase 2: Stream Empresas -> load
-        if use_bq:
+        if start_phase > 2:
+            logger.info("Skipping Phase 2 (empresas) — start_phase=%d", start_phase)
+        elif use_bq:
             emp_files = bq_emp
             logger.info("Phase 2: Streaming %d BQ Empresas files", len(emp_files))
             for f in emp_files:

@@ -31,6 +31,7 @@ def cli() -> None:
 @click.option("--limit", type=int, default=None, help="Limit rows processed")
 @click.option("--chunk-size", type=int, default=50_000, help="Chunk size for batch processing")
 @click.option("--streaming/--no-streaming", default=False, help="Streaming mode")
+@click.option("--start-phase", type=int, default=1, help="Skip to phase N")
 def run(
     source: str,
     neo4j_uri: str,
@@ -40,6 +41,7 @@ def run(
     limit: int | None,
     chunk_size: int,
     streaming: bool,
+    start_phase: int,
 ) -> None:
     """Run an ETL pipeline."""
     driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
@@ -52,7 +54,7 @@ def run(
     pipeline = pipeline_cls(driver=driver, data_dir=data_dir, limit=limit, chunk_size=chunk_size)
 
     if streaming and hasattr(pipeline, "run_streaming"):
-        pipeline.run_streaming()
+        pipeline.run_streaming(start_phase=start_phase)
     else:
         pipeline.run()
 
