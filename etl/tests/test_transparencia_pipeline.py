@@ -138,6 +138,33 @@ def test_transform_amendment_ids_are_unique() -> None:
     assert len(set(ids)) == len(ids)
 
 
+def test_transform_skips_empty_cnpj_contracts() -> None:
+    """Contracts with empty or non-digit CNPJ should be filtered out."""
+    import pandas as pd
+
+    pipeline = _make_pipeline()
+    _extract_from_fixtures(pipeline)
+
+    # Add a row with empty CNPJ (only non-digit chars)
+    empty_cnpj = pd.DataFrame([{
+        "cnpj_contratada": "",
+        "razao_social": "Fantasma Ltda",
+        "objeto": "Servico Fantasma",
+        "valor": "50.000,00",
+        "orgao_contratante": "Orgao Inexistente",
+        "data_inicio": "2024-01-15",
+    }])
+    pipeline._raw_contratos = pd.concat(
+        [pipeline._raw_contratos, empty_cnpj], ignore_index=True,
+    )
+
+    pipeline.transform()
+    # No malformed contract_ids (starting with underscore)
+    assert all(not c["contract_id"].startswith("_") for c in pipeline.contracts)
+    # Original 3 contracts still present
+    assert len(pipeline.contracts) == 3
+
+
 def test_parse_brl_handles_formats() -> None:
     assert _parse_brl("1.500.000,00") == 1_500_000.00
     assert _parse_brl("3.200.000,50") == 3_200_000.50

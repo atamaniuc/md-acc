@@ -95,11 +95,14 @@ class TransparenciaPipeline(Pipeline):
             if raw_cnpj == _SIGILOSO_CNPJ:
                 continue
 
+            # Skip rows where CNPJ has no digits (produces malformed contract_ids)
+            cnpj_digits = strip_document(raw_cnpj)
+            if not cnpj_digits:
+                continue
+
             cnpj = format_cnpj(raw_cnpj)
             contracts.append({
-                "contract_id": (
-                    f"{strip_document(raw_cnpj)}_{row['data_inicio']}"
-                ),
+                "contract_id": f"{cnpj_digits}_{row['data_inicio']}",
                 "object": normalize_name(str(row["objeto"])),
                 "value": _parse_brl(str(row["valor"])),
                 "contracting_org": normalize_name(str(row["orgao_contratante"])),

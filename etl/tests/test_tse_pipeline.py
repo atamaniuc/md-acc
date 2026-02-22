@@ -129,3 +129,34 @@ def test_transform_identifies_company_donors() -> None:
     assert len(company_donations) == 1
     assert company_donations[0]["donor_name"] == "EMPRESA ABC LTDA"
     assert len(person_donations) == 2
+
+
+def test_load_company_donors_include_razao_social() -> None:
+    """Company donor nodes must include razao_social for API compatibility."""
+    pipeline = _make_pipeline()
+    _extract_from_fixtures(pipeline)
+    pipeline.transform()
+    pipeline.load()
+
+    # Collect all load_nodes calls from the mock driver
+    session_mock = pipeline.driver.session.return_value.__enter__.return_value
+    run_calls = session_mock.run.call_args_list
+
+    # Find the MERGE (n:Company ...) call — its rows should include razao_social
+    company_merge_calls = [
+        call for call in run_calls
+        if "MERGE (n:Company" in str(call)
+    ]
+    assert len(company_merge_calls) >= 1, "Expected at least one Company MERGE call"
+
+    # Extract the rows from the first Company MERGE call
+    call = company_merge_calls[0]
+    call_kwargs = call[1] if call[1] else {}
+    company_rows = (
+        call_kwargs["rows"] if "rows" in call_kwargs else call[0][1]["rows"]
+    )
+    for row in company_rows:
+        assert "razao_social" in row, f"Company donor row missing razao_social: {row}"
+        assert row["razao_social"] == row["name"], (
+            f"razao_social should match name for TSE donors: {row}"
+        )

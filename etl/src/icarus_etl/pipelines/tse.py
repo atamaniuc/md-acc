@@ -173,7 +173,7 @@ class TSEPipeline(Pipeline):
             if not d["donor_is_company"]
         ]
         company_donors = [
-            {"cnpj": d["donor_doc"], "name": d["donor_name"]}
+            {"cnpj": d["donor_doc"], "name": d["donor_name"], "razao_social": d["donor_name"]}
             for d in self.donations
             if d["donor_is_company"]
         ]

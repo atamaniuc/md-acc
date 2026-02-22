@@ -131,3 +131,60 @@ class TestSanctionsTransform:
         assert "date_end" in s
         assert "reason" in s
         assert "source" in s
+
+
+class TestSanctionsLoad:
+    def test_company_nodes_include_razao_social(self) -> None:
+        """Company nodes created by sanctions must include razao_social."""
+        pipeline = _make_pipeline()
+        _load_fixture_data(pipeline)
+        pipeline.transform()
+        pipeline.load()
+
+        session_mock = pipeline.driver.session.return_value.__enter__.return_value
+        run_calls = session_mock.run.call_args_list
+
+        # Find Company MERGE calls
+        company_merge_calls = [
+            call for call in run_calls
+            if "MERGE (n:Company" in str(call)
+        ]
+        assert len(company_merge_calls) >= 1, "Expected Company MERGE calls"
+
+        # Every Company row should have razao_social
+        for call in company_merge_calls:
+            rows = (
+                call[1]["rows"]
+                if "rows" in call[1]
+                else call[0][1]["rows"]
+            )
+            for row in rows:
+                assert "razao_social" in row, (
+                    f"Company node missing razao_social: {row}"
+                )
+                assert row["razao_social"] == row["name"]
+
+    def test_person_nodes_no_razao_social(self) -> None:
+        """Person nodes should NOT have razao_social."""
+        pipeline = _make_pipeline()
+        _load_fixture_data(pipeline)
+        pipeline.transform()
+        pipeline.load()
+
+        session_mock = pipeline.driver.session.return_value.__enter__.return_value
+        run_calls = session_mock.run.call_args_list
+
+        person_merge_calls = [
+            call for call in run_calls
+            if "MERGE (n:Person" in str(call)
+        ]
+        for call in person_merge_calls:
+            rows = (
+                call[1]["rows"]
+                if "rows" in call[1]
+                else call[0][1]["rows"]
+            )
+            for row in rows:
+                assert "razao_social" not in row, (
+                    f"Person node should not have razao_social: {row}"
+                )

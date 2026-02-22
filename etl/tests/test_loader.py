@@ -68,7 +68,11 @@ class TestNeo4jBatchLoader:
         ]
         count = loader.load_nodes("Company", rows, "cnpj")
         assert count == 2
-        batch = session.run.call_args[1]["rows"] if session.run.call_args[1] else session.run.call_args[0][1]["rows"]
+        call_args = session.run.call_args
+        batch = (
+            call_args[1]["rows"] if call_args[1]
+            else call_args[0][1]["rows"]
+        )
         assert all(r["cnpj"] for r in batch)
 
     def test_load_relationships_filters_empty_keys(self) -> None:
@@ -85,7 +89,11 @@ class TestNeo4jBatchLoader:
             "REL", rows, "A", "id", "B", "id", properties=["value"],
         )
         assert count == 2
-        batch = session.run.call_args[1]["rows"] if session.run.call_args[1] else session.run.call_args[0][1]["rows"]
+        call_args = session.run.call_args
+        batch = (
+            call_args[1]["rows"] if call_args[1]
+            else call_args[0][1]["rows"]
+        )
         assert all(r["source_key"] and r["target_key"] for r in batch)
 
     def test_run_query(self) -> None:

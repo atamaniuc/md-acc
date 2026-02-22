@@ -15,7 +15,7 @@ def _extract_name(node: Any, labels: list[str]) -> str:
     props = dict(node)
     entity_type = labels[0].lower() if labels else ""
     if entity_type == "company":
-        return str(props.get("razao_social", props.get("nome_fantasia", "")))
+        return str(props.get("razao_social", props.get("name", props.get("nome_fantasia", ""))))
     return str(props.get("name", ""))
 
 

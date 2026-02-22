@@ -133,7 +133,9 @@ class SanctionsPipeline(Pipeline):
             doc = ent["entity_doc"]
             name = ent["entity_name"]
 
-            node_row = {key_field: doc, "name": name}
+            node_row: dict[str, Any] = {key_field: doc, "name": name}
+            if label == "Company":
+                node_row["razao_social"] = name
             loader.load_nodes(label, [node_row], key_field=key_field)
 
         if self.sanctioned_entities:
