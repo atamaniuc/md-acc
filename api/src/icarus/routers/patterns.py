@@ -7,7 +7,7 @@ from starlette.requests import Request
 from icarus.config import settings
 from icarus.dependencies import get_driver, get_intelligence_provider, get_session
 from icarus.middleware.rate_limit import limiter
-from icarus.models.pattern import PatternResponse
+from icarus.models.pattern import PatternResponse, PatternResult
 from icarus.services.intelligence_provider import IntelligenceProvider
 from icarus.services.public_guard import enforce_entity_lookup_enabled
 
@@ -20,7 +20,7 @@ async def run_all_patterns(
     lang: str = "pt",
     include_probable: bool = False,
     provider: IntelligenceProvider | None = None,
-) -> list:
+) -> list[PatternResult]:
     intelligence = provider or get_intelligence_provider()
     return await intelligence.run_all_patterns(
         driver,
@@ -37,7 +37,7 @@ async def run_pattern(
     lang: str = "pt",
     include_probable: bool = False,
     provider: IntelligenceProvider | None = None,
-) -> list:
+) -> list[PatternResult]:
     intelligence = provider or get_intelligence_provider()
     return await intelligence.run_pattern(
         session,
