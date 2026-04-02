@@ -179,13 +179,38 @@ def run(
 def _resolve_rf_release_inline(year_month: str | None = None) -> str:
     """Resolve Receita Federal CNPJ release URL.
 
-    Tries Nextcloud shares first (new primary), falls back to dadosabertos.rfb.gov.br.
+    Tries the current arquivos.receitafederal.gov.br monthly archive path first,
+    then Nextcloud shares, then older dadosabertos fallbacks.
     """
     from datetime import UTC, datetime
 
     import httpx
 
-    # --- Nextcloud (primary) ---
+    now = datetime.now(UTC)
+    if year_month is not None:
+        candidates = [year_month]
+    else:
+        candidates: list[str] = []
+        cursor = now.replace(day=1)
+        for _ in range(12):
+            candidates.append(f"{cursor.year:04d}-{cursor.month:02d}")
+            if cursor.month == 1:
+                cursor = cursor.replace(year=cursor.year - 1, month=12)
+            else:
+                cursor = cursor.replace(month=cursor.month - 1)
+
+    # --- Current archive path (authoritative monthly releases) ---
+    archive_base = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{ym}/"
+    for ym in candidates:
+        url = archive_base.format(ym=ym)
+        try:
+            resp = httpx.head(url, follow_redirects=True, timeout=30)
+            if resp.status_code < 400:
+                return url
+        except httpx.HTTPError:
+            pass
+
+    # --- Nextcloud (legacy interim path) ---
     nextcloud_dl = "https://arquivos.receitafederal.gov.br/s/{token}/download?path=%2F&files="
     tokens: list[str] = []
     env_token = os.environ.get("CNPJ_SHARE_TOKEN")
@@ -205,15 +230,6 @@ def _resolve_rf_release_inline(year_month: str | None = None) -> str:
     # --- Legacy dadosabertos (fallback) ---
     new_base = "https://dadosabertos.rfb.gov.br/CNPJ/dados_abertos_cnpj/{ym}/"
     legacy_url = "https://dadosabertos.rfb.gov.br/CNPJ/"
-
-    now = datetime.now(UTC)
-    if year_month is not None:
-        candidates = [year_month]
-    else:
-        current = f"{now.year:04d}-{now.month:02d}"
-        prev_m = now.month - 1 if now.month > 1 else 12
-        prev_y = now.year if now.month > 1 else now.year - 1
-        candidates = [current, f"{prev_y:04d}-{prev_m:02d}"]
 
     for ym in candidates:
         url = new_base.format(ym=ym)
