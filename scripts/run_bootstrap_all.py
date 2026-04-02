@@ -449,7 +449,7 @@ def main() -> int:
 
         ingest_cmd = (
             "cd /workspace/etl && "
-            f"uv run bracc-etl run --source {pipeline_id} "
+            f"bracc-etl run --source {pipeline_id} "
             "--neo4j-uri bolt://neo4j:7687 "
             "--neo4j-user neo4j "
             "--neo4j-password \"$NEO4J_PASSWORD\" "
